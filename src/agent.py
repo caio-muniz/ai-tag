@@ -63,18 +63,18 @@ class Agent:
 
         if action == 0:
             self.vx = 0
-            self.vy = self.speed
+            self.vy = self.speed * 2
 
         elif action == 1:
             self.vx = 0
-            self.vy = -self.speed
+            self.vy = -self.speed * 2
 
         elif action == 2:
-            self.vx = self.speed
+            self.vx = self.speed * 2
             self.vy = 0
 
         elif action == 3:
-            self.vx = -self.speed
+            self.vx = -self.speed * 2
             self.vy = 0
 
     def calculate_reward(self, alvo, distancia_anterior):
@@ -84,3 +84,12 @@ class Agent:
             return 1
         else:
             return -1
+
+    def calculate_flee_reward(self, alvo, distancia_anterior):
+        distancia_atual = self.distance_to(alvo)
+
+        if distancia_atual < distancia_anterior:
+            return -1
+        else:
+            return 1
+
