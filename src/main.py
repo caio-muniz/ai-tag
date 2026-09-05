@@ -38,9 +38,14 @@ def main():
         20
     )
 
-    trainer = DQNTrainer()
+    #cérebro do vermelho
+    red_trainer = DQNTrainer()
 
-    previous_distance = red.distance_to(blue)
+    #cérebro do azul
+    blue_trainer = DQNTrainer()
+
+    previous_distance_red = red.distance_to(blue)
+    previous_distance_blue = blue.distance_to(red)
 
     while running:
 
@@ -49,45 +54,80 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
-        state = red.get_state(blue)
+        state_red = red.get_state(blue)
+        state_blue = blue.get_state(red)
 
-        action = trainer.select_action(state)
+        action_red = red_trainer.select_action(state_red)
+        action_blue = blue_trainer.select_action(state_blue)
 
-        red.apply_action(action)
+        red.apply_action(action_red)
+        blue.apply_action(action_blue)
+
 
         red.update(WIDTH, HEIGHT)
-
-        blue.vx = 1
-        blue.vy = 0
-
         blue.update(WIDTH, HEIGHT)
+
 
         distance = red.distance_to(blue)
 
-        reward = red.calculate_reward(
+
+        reward_red = red.calculate_reward(
             blue,
-            previous_distance
+            previous_distance_red
         )
+
+        reward_blue = blue.calculate_flee_reward(
+            red,
+            previous_distance_blue
+        )
+
 
         done = distance < 30
 
-        next_state = red.get_state(blue)
+        # Recompensa pela captura
+        if done:
+            reward_red += 100
+            reward_blue -= 100
 
-        trainer.memory.add(
-            state,
-            action,
-            reward,
-            next_state,
+
+        next_state_red = red.get_state(blue)
+        next_state_blue = blue.get_state(red)
+
+        red_trainer.memory.add(
+            state_red,
+            action_red,
+            reward_red,
+            next_state_red,
             done
         )
 
-        trainer.train_step()
 
-        previous_distance = distance
+        blue_trainer.memory.add(
+            state_blue,
+            action_blue,
+            reward_blue,
+            next_state_blue,
+            done
+        )
+
+
+        red_trainer.train_step()
+        blue_trainer.train_step()
+
+
+        previous_distance_red = distance
+        previous_distance_blue = distance
+
 
         if done:
 
-            print("PEGOU!")
+            print(
+                "PEGOU!",
+                "Epsilon vermelho:",
+                round(red_trainer.epsilon, 3),
+                "Epsilon azul:",
+                round(blue_trainer.epsilon, 3)
+            )
 
             red.x = 200
             red.y = 300
@@ -95,7 +135,15 @@ def main():
             blue.x = 700
             blue.y = 400
 
-            previous_distance = red.distance_to(blue)
+            red.vx = 0
+            red.vy = 0
+
+            blue.vx = 0
+            blue.vy = 0
+
+            previous_distance_red = red.distance_to(blue)
+            previous_distance_blue = blue.distance_to(red)
+
 
         screen.fill((0, 0, 0))
 
@@ -106,7 +154,9 @@ def main():
 
         clock.tick(60)
 
-    trainer.save("dqn_red.pth")
+
+    red_trainer.save("dqn_red.pth")
+    blue_trainer.save("dqn_blue.pth")
 
     pygame.quit()
 
